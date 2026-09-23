@@ -895,10 +895,10 @@ for (mmm=0;mmm<mmmfbis;mmm++){
 	}
     
     
-    IH_0=beta_y_moy_0;
-    IH_90=beta_z_moy_0;
-    IV_0=beta_xxx_moy;
-    IV_90=beta_xyy_moy;
+    IH_0=beta_y_moy_0/(8*pi*pi);
+    IH_90=beta_z_moy_0/(8*pi*pi);
+    IV_0=beta_xxx_moy/(8*pi*pi);
+    IV_90=beta_xyy_moy/(8*pi*pi);
     printf("IH_0=%lf    IH_90=%lf   IV_0=%lf    IV_90=%lf \n",IH_0,IH_90,IV_0,IV_90);
     fprintf(fichier_out," %lf    %lf   %lf   %lf   %lf \n",grandthetadegree,IH_0,IH_90,IV_0,IV_90);
     fprintf(fichier_grace1," %lf    %lf   %lf   %lf   %lf \n",grandthetadegree,IH_0,IH_90,IV_0,IV_90);
