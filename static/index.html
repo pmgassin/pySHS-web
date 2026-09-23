@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PySHS Web – Second Harmonic Scattering</title>
+  <style>
+    :root {
+      --primary: #1e40af;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: #1e293b;
+      line-height: 1.5;
+    }
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 1.2rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    header img { height: 65px; border-radius: 8px; }
+    header h1 { font-size: 1.5rem; margin: 0; }
+    header p { margin: 0.2rem 0 0; opacity: 0.9; font-size: 0.95rem; }
+    main {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 1px solid var(--border);
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      margin-bottom: 1rem;
+      color: var(--primary);
+      border-bottom: 2px solid #dbeafe;
+      padding-bottom: 0.4rem;
+    }
+    label { display: block; font-size: 0.85rem; font-weight: 500; margin: 0.8rem 0 0.3rem; }
+    select, input, textarea {
+      width: 100%;
+      padding: 0.55rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+    textarea { font-family: ui-monospace, monospace; font-size: 0.85rem; min-height: 130px; resize: vertical; }
+    button {
+      margin-top: 1rem;
+      width: 100%;
+      padding: 0.7rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #1e3a8a; }
+    button:disabled { background: #94a3b8; cursor: not-allowed; }
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .tab {
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #f1f5f9;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .hidden { display: none; }
+    #result {
+      white-space: pre-wrap;
+      font-family: ui-monospace, monospace;
+      font-size: 0.85rem;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 1.2rem;
+      border-radius: 10px;
+      max-height: 400px;
+      overflow: auto;
+    }
+    .status { margin-top: 0.6rem; font-size: 0.9rem; color: #64748b; }
+    .progress-container { margin-top: 1rem; display: none; }
+    .progress-bar-bg { width: 100%; height: 18px; background: #e2e8f0; border-radius: 9px; overflow: hidden; }
+    .progress-bar-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+      border-radius: 9px; transition: width 0.25s ease;
+    }
+    .progress-text {
+      font-size: 0.85rem; color: #64748b; margin-top: 0.35rem;
+      display: flex; justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="/static/logo_pyshs.png" alt="Logo PySHS" onerror="this.style.display='none'">
+  <div>
+    <h1>PySHS V3.2.2 – Interface Web</h1>
+    <p>Second Harmonic Scattering</p>
+  </div>
+</header>
+
+<main>
+  <!-- Colonne gauche -->
+  <div class="card">
+    <h2>Module de calcul</h2>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchModule('hrs')">HRS</div>
+      <div class="tab" onclick="switchModule('shs')">SHS</div>
+      <div class="tab" onclick="switchModule('sphere')">Sphere</div>
+    </div>
+
+    <label>Type de calcul</label>
+    <select id="keyword">
+      <option value="polarplot_single">polarplot_single</option>
+      <option value="polarplot_integrate">polarplot_integrate</option>
+      <option value="angle_scattering">angle_scattering</option>
+    </select>
+
+    <!-- HRS -->
+    <div id="params-hrs">
+      <label>Angle de diffusion Θ (°)</label>
+      <input type="number" id="theta_hrs" value="90" min="0" max="180">
+    </div>
+
+    <!-- SHS -->
+    <div id="params-shs" class="hidden">
+      <label>Nombre de dipôles</label>
+      <input type="number" id="n_dipoles" value="100" min="1">
+      <label>Longueur d’onde (nm)</label>
+      <input type="number" id="wavelength" value="790">
+      <label>Indice – partie réelle</label>
+      <input type="number" id="n_real" value="1.33" step="0.01">
+      <label>Indice – partie imaginaire</label>
+      <input type="number" id="n_imag" value="0.0" step="0.001">
+      <label>Angle de diffusion Θ (°)</label>
+      <input type="number" id="theta_shs" value="90" min="0" max="180">
+      <label>Nombre de points (pour angle_scattering)</label>
+	  <input type="number" id="n_points" value="20" min="5" max="180">
+    </div>
+
+    <!-- Sphere -->
+    <div id="params-sphere" class="hidden">
+      <label>Indice de réfraction</label>
+      <input type="number" id="n_index_s" value="1.33" step="0.01">
+      <label>Longueur d’onde (nm)</label>
+      <input type="number" id="wavelength_s" value="800">
+      <label>Rayon (nm)</label>
+      <input type="number" id="radius" value="50" step="0.1">
+    </div>
+  </div>
+
+  <!-- Colonne droite -->
+  <div class="card">
+    <h2>Fichiers d’entrée</h2>
+
+    <label>Tenseur d’hyperpolarisabilité</label>
+    <textarea id="beta" placeholder="xxx 0.0&#10;xxy 0.0&#10;...&#10;zzz 1.0"></textarea>
+    <button type="button" onclick="loadExampleBeta()" style="background:#64748b; margin-top:0.5rem;">
+      Charger un exemple
+    </button>
+
+    <div id="orient-block" class="hidden">
+      <label style="margin-top:1rem;">Positions / Orientations (SHS)</label>
+      <textarea id="orientation" placeholder="phi theta psi x y z"></textarea>
+
+      <div style="margin-top:1rem; padding:1rem; background:#f1f5f9; border-radius:8px;">
+        <strong>Générer une sphère</strong>
+        <label>Rayon (nm)</label>
+        <input type="number" id="gen_radius" value="50">
+        <label>Nombre de dipôles</label>
+        <input type="number" id="gen_ndipoles" value="100">
+        <label>Désordre σ</label>
+        <input type="number" id="gen_sigma" value="0.3" step="0.05">
+        <button type="button" onclick="generateSphere()" style="background:#0f766e; margin-top:0.7rem;">
+          Générer les positions
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Résultat -->
+  <div class="card" style="grid-column:1/-1;">
+    <h2>Lancer le calcul</h2>
+    <button id="runBtn" onclick="runCalculation()">Exécuter</button>
+
+    <div class="progress-container" id="progressContainer">
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <div class="progress-text">
+        <span id="progressLabel">Calcul en cours…</span>
+        <span id="progressPercent">0%</span>
+      </div>
+    </div>
+
+    <div class="status" id="status"></div>
+    <pre id="result">Les résultats apparaîtront ici…</pre>
+
+    <button id="btnSaveData" onclick="saveResultData()"
+            style="margin-top:0.8rem; width:auto; padding:0.5rem 1.2rem; background:#64748b; display:none;">
+      Enregistrer les données (.txt)
+    </button>
+
+    <div id="plots-container" style="margin-top:1.5rem; display:none;">
+      <h3 style="margin-bottom:0.8rem;">Graphiques</h3>
+      <div id="plots" style="display:flex; flex-wrap:wrap; gap:1.5rem;"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+let currentModule = 'hrs';
+
+function switchModule(mod) {
+  currentModule = mod;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+
+  document.getElementById('params-hrs').classList.toggle('hidden', mod !== 'hrs');
+  document.getElementById('params-shs').classList.toggle('hidden', mod !== 'shs');
+  document.getElementById('params-sphere').classList.toggle('hidden', mod !== 'sphere');
+  document.getElementById('orient-block').classList.toggle('hidden', mod !== 'shs');
+}
+
+function saveResultData() {
+  const content = document.getElementById('result').textContent;
+  if (!content || content.includes('Les résultats apparaîtront')) {
+    alert('Aucune donnée à enregistrer');
+    return;
+  }
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `resultat_pyshs_${Date.now()}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function loadExampleBeta() {
+  try {
+    const res = await fetch('/api/example/beta');
+    const data = await res.json();
+    document.getElementById('beta').value = data.content;
+  } catch (e) {
+    alert('Erreur chargement exemple');
+  }
+}
+
+async function generateSphere() {
+  const radius = document.getElementById('gen_radius').value;
+  const n_dipoles = document.getElementById('gen_ndipoles').value;
+  const sigma = document.getElementById('gen_sigma').value;
+  const status = document.getElementById('status');
+  status.textContent = 'Génération en cours…';
+
+  try {
+    const res = await fetch(`/api/generate_sphere?radius=${radius}&n_dipoles=${n_dipoles}&sigma=${sigma}`, {
+      method: 'POST'
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.detail || 'Erreur');
+      return;
+    }
+    document.getElementById('orientation').value = data.content;
+    status.textContent = data.message;
+  } catch (err) {
+    status.textContent = 'Erreur réseau';
+    alert(err.message);
+  }
+}
+
+function displayPlots(plots, jobId) {
+  if (!plots) return;
+  const plotsDiv = document.getElementById('plots');
+  const container = document.getElementById('plots-container');
+  container.style.display = 'block';
+  plotsDiv.innerHTML = '';
+
+  for (const [name, urls] of Object.entries(plots)) {
+    if (name === 'error') continue;
+    const pngUrl = typeof urls === 'string' ? urls : (urls.png || '');
+    const pdfUrl = typeof urls === 'object' ? urls.pdf : null;
+
+    plotsDiv.innerHTML += `
+      <div style="margin-bottom:1.2rem; border:1px solid #e2e8f0; padding:1rem; border-radius:10px;">
+        <p style="font-weight:600; margin-bottom:0.5rem;">${name}</p>
+        <img src="${pngUrl}?t=${Date.now()}" style="max-width:420px; border-radius:6px; display:block; margin-bottom:0.6rem;">
+        <div style="display:flex; gap:0.5rem;">
+          <a href="${pngUrl}" download="${name}_${jobId}.png"
+             style="padding:0.35rem 0.8rem; background:#3b82f6; color:white; border-radius:6px; text-decoration:none; font-size:0.85rem;">
+            PNG
+          </a>
+          ${pdfUrl ? `<a href="${pdfUrl}" download="${name}_${jobId}.pdf"
+             style="padding:0.35rem 0.8rem; background:#0f766e; color:white; border-radius:6px; text-decoration:none; font-size:0.85rem;">
+            PDF
+          </a>` : ''}
+        </div>
+      </div>`;
+  }
+}
+
+async function runCalculation() {
+  const btn = document.getElementById('runBtn');
+  const status = document.getElementById('status');
+  const resultEl = document.getElementById('result');
+  const progressContainer = document.getElementById('progressContainer');
+  const progressBar = document.getElementById('progressBar');
+  const progressLabel = document.getElementById('progressLabel');
+  const progressPercent = document.getElementById('progressPercent');
+  const btnSaveData = document.getElementById('btnSaveData');
+
+  btn.disabled = true;
+  status.textContent = '';
+  resultEl.textContent = '';
+  btnSaveData.style.display = 'none';
+  document.getElementById('plots-container').style.display = 'none';
+  document.getElementById('plots').innerHTML = '';
+
+  progressContainer.style.display = 'block';
+  progressBar.style.width = '0%';
+  progressBar.style.background = 'linear-gradient(90deg, #3b82f6, #1d4ed8)';
+  progressPercent.textContent = '0%';
+  progressLabel.textContent = 'Démarrage…';
+
+  const keyword = document.getElementById('keyword').value;
+  const beta = document.getElementById('beta').value;
+
+  // ========== SHS ==========
+  if (currentModule === 'shs') {
+    const body = {
+      keyword,
+      beta_content: beta,
+      orientation_content: document.getElementById('orientation').value,
+      n_dipoles: parseInt(document.getElementById('n_dipoles').value) || 100,
+      wavelength: parseFloat(document.getElementById('wavelength').value) || 790,
+      n_real: parseFloat(document.getElementById('n_real').value) || 1.33,
+      n_imag: parseFloat(document.getElementById('n_imag').value) || 0,
+      theta: parseFloat(document.getElementById('theta_shs').value) || 90,
+      n_points: parseInt(document.getElementById('n_points').value) || 20
+    };
+
+    try {
+      const res = await fetch('/api/shs_stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop();
+
+        for (const part of parts) {
+          if (!part.startsWith('data: ')) continue;
+          let data;
+          try { data = JSON.parse(part.slice(6)); } catch { continue; }
+
+          if (data.type === 'progress') {
+            const p = Math.min(100, data.percent);
+            progressBar.style.width = p + '%';
+            progressPercent.textContent = Math.floor(p) + '%';
+            progressLabel.textContent = `Calcul… ${Math.floor(p)}%`;
+          } else if (data.type === 'done') {
+            progressBar.style.width = '100%';
+            progressBar.style.background = data.success ? 'linear-gradient(90deg,#22c55e,#16a34a)' : '#ef4444';
+            progressPercent.textContent = '100%';
+            progressLabel.textContent = data.success ? 'Terminé' : 'Erreur';
+            resultEl.textContent = data.result || 'Terminé';
+            status.textContent = data.success ? `Succès – ${data.job_id}` : 'Échec';
+            btnSaveData.style.display = 'inline-block';
+            displayPlots(data.plots, data.job_id);
+          } else if (data.type === 'error') {
+            progressLabel.textContent = 'Erreur';
+            resultEl.textContent = data.message;
+            status.textContent = 'Erreur';
+          }
+        }
+      }
+    } catch (err) {
+      progressLabel.textContent = 'Erreur réseau';
+      resultEl.textContent = err.message;
+      status.textContent = 'Erreur';
+    } finally {
+      btn.disabled = false;
+      setTimeout(() => progressContainer.style.display = 'none', 3500);
+    }
+    return;
+  }
+
+  // ========== HRS / Sphere ==========
+  let url, body;
+  if (currentModule === 'hrs') {
+    url = '/api/hrs';
+    body = {
+      keyword,
+      beta_content: beta,
+      theta: parseFloat(document.getElementById('theta_hrs').value) || 90
+    };
+  } else {
+    url = '/api/sphere';
+    body = {
+      keyword,
+      beta_content: beta,
+      n_index: parseFloat(document.getElementById('n_index_s').value) || 1.33,
+      wavelength: parseFloat(document.getElementById('wavelength_s').value) || 800,
+      radius: parseFloat(document.getElementById('radius').value) || 50
+    };
+  }
+
+  let fake = 0;
+  const fakeInterval = setInterval(() => {
+    fake = Math.min(85, fake + 3);
+    progressBar.style.width = fake + '%';
+    progressPercent.textContent = Math.floor(fake) + '%';
+  }, 250);
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    clearInterval(fakeInterval);
+
+    if (!res.ok) {
+      progressBar.style.background = '#ef4444';
+      progressLabel.textContent = 'Erreur';
+      resultEl.textContent = data.detail || JSON.stringify(data);
+      status.textContent = 'Échec';
+    } else {
+      progressBar.style.width = '100%';
+      progressBar.style.background = 'linear-gradient(90deg,#22c55e,#16a34a)';
+      progressPercent.textContent = '100%';
+      progressLabel.textContent = 'Terminé';
+      resultEl.textContent = data.result || data.stdout || 'Terminé';
+      status.textContent = `Succès – ${data.job_id}`;
+      btnSaveData.style.display = 'inline-block';
+      displayPlots(data.plots, data.job_id);
+    }
+  } catch (err) {
+    clearInterval(fakeInterval);
+    progressLabel.textContent = 'Erreur réseau';
+    resultEl.textContent = err.message;
+    status.textContent = 'Erreur';
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => progressContainer.style.display = 'none', 3500);
+  }
+}
+</script>
+</body>
+</html>
