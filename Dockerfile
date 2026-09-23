@@ -13,9 +13,9 @@ COPY . .
 
 # Compiler les binaires C (adaptez les noms de fichiers sources)
 # Exemple :
-# RUN gcc -O2 -o Work/HRS Src/HRS.c -lm
-# RUN gcc -O2 -o Work/SHS Src/SHS.c -lm
-# RUN gcc -O2 -o Work/sphere_SHS Src/sphere_SHS.c -lm
+RUN gcc -O2 -o Work/HRS Src/HRS.c -lm
+RUN gcc -O2 -o Work/SHS Src/SHS.c -lm
+RUN gcc -O2 -o Work/sphere_SHS Src/sphere_SHS.c -lm
 
 # Installer les dépendances Python
 RUN pip install --no-cache-dir -r requirements.txt
