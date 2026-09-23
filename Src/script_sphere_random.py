@@ -48,8 +48,8 @@ with open(output_file, "w") as f:
 
 
         # Ajout du désordre
-        theta += np.random.randn(1) * ind
-        phi   += np.random.randn(1) * ind
+        theta += np.random.randn() * ind
+        phi   += np.random.randn() * ind
 
         f.write("%12.6f %12.6f %12.6f %12.6f %12.6f %12.6f\n" %
                 (phi, theta, psi, x, y, z))
